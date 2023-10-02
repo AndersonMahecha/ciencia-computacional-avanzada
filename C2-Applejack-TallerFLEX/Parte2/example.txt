@@ -11,5 +11,6 @@ A
 1A
 1UP
 2RIGHT
-2A
-1A
+2X
+2X
+2Y
