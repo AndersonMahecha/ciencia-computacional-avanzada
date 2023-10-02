@@ -2,6 +2,9 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
+
+//modificar para que la probabilidad sea diferente. 1 = 100%, 0 = 0%
+#define PROBABILIDAD 1
 char mapas[4][10] = {"Arctika", "Metropolis", "Armory", "Hell"};
 char mapa[10];
 #define MAX_PERSONAJES 4
@@ -97,6 +100,7 @@ char ataquesPrevios[2][MAX_ATAQUES_PREVIOS][30]={
 };
 
 bool tambaleo[2] = {false, false};
+bool muerto[2] = {false, false};
 int currentOption = 0;
 int stage = 0;
 
@@ -108,17 +112,21 @@ int getOpponent(int a){
 }
 
 bool randomAttack(){
-    //funcion que devuelve true o false con una probabilidad de 50%.
-    //modificar para que la probabilidad sea diferente. 1 = 100%, 0 = 0%
-    float probabilidad = 0.5;
-
-    return (rand()/(float)RAND_MAX) < probabilidad;
+    
+    return (rand()/(float)RAND_MAX) < PROBABILIDAD;
 }
 
 void printAttack(int player, int opponent, char* attackName, bool hit, int damage){
     printf("El personaje %s ha usado %s contra %s\n", personaje[player-1], attackName, personaje[opponent-1]);
     if(hit){
         printf("El ataque ha acertado\n");
+        if(muerto[opponent-1]){
+            return;
+        }
+        if(tambaleo[opponent-1]){
+            printf("El personaje %s ha muerto\n", personaje[opponent-1]);
+            return;
+        }
         vida[opponent-1] -= damage;
         if (vida[opponent-1] <= 0){
             vida[opponent-1] = 0;
@@ -126,6 +134,12 @@ void printAttack(int player, int opponent, char* attackName, bool hit, int damag
         }
         printf("El personaje %s ha recibido %d de daño\n", personaje[opponent-1], damage);
         printf("Vida restante de %s: %d\n", personaje[opponent-1], vida[opponent-1]);
+        if(tambaleo[opponent-1]){
+            for(int j=0;j<MAX_ATAQUES_PREVIOS; j++){
+                strcpy(ataquesPrevios[player-1][j], "");
+            }
+            printf("El personaje %s está tambaleándose\n", personaje[opponent-1]);
+        }
     }else{
         printf("El ataque ha fallado\n");
     }
@@ -194,16 +208,15 @@ void checkCombo(int player){
                 if(totalAtaquesCombo == 0){
                     printf("El personaje %s ha realizado el combo %s\n", personaje[player-1], nombreCombosPersonaje[personajePos[player-1]][i]);
                     vida[getOpponent(player)-1] -= damageComboPersonaje[personajePos[player-1]][i];
+                    if (vida[getOpponent(player)-1] <= 0){
+                        vida[getOpponent(player)-1] = 0;
+                        tambaleo[getOpponent(player)-1] = true;
+                    }
                     printf("El personaje %s ha recibido %d de daño adicionales\n", personaje[getOpponent(player)-1], damageComboPersonaje[personajePos[player-1]][i]);
                     printf("Vida restante de %s: %d\n", personaje[getOpponent(player)-1], vida[getOpponent(player)-1]);
-
-                    //print content of ataquesPrevios
-                    printf("Ataques previos: ");
-                    for(int j=0;j<MAX_ATAQUES_PREVIOS; j++){
-                        printf("%s ", ataquesPrevios[player-1][j]);
+                    if(tambaleo[getOpponent(player)-1]){
+                        printf("El personaje %s está tambaleándose\n", personaje[getOpponent(player)-1]);
                     }
-                    printf("\n");
-
 
                     for(int j=0;j<MAX_ATAQUES_PREVIOS; j++){
                         strcpy(ataquesPrevios[player-1][j], "");
@@ -212,6 +225,10 @@ void checkCombo(int player){
                 }
             }
         }    
+}
+
+void checkFatality(int player){
+
 }
 
 
@@ -434,12 +451,24 @@ MOVEMENT {UP}|{DOWN}|{LEFT}|{RIGHT}
 .       { /* Ignorar cualquier otro caracter */}
 \n      { /* Ignorar saltos de línea */ }
 <<EOF>> {
+
+            
+            printf("---------------------------------------------------------\n");
             printf("Fin de la partida, gracias por jugar\n");
             printf("Estadísticas de la partida:\n");
             printf("Personaje 1: %s\n", personaje[0]);
             printf("Vida: %d\n", vida[0]);
             printf("Personaje 2: %s\n", personaje[1]);
             printf("Vida: %d\n", vida[1]);
+            printf("---------------------------------------------------------\n");
+            if (vida[0] > vida[1]){
+                printf("El ganador es el personaje %s\n", personaje[0]);
+            }else if(vida[0] < vida[1]){
+                printf("El ganador es el personaje %s\n", personaje[1]);
+            }else{
+                printf("Hubo un empate\n");
+            }
+            printf("---------------------------------------------------------\n");
             yyterminate();
         }
 
