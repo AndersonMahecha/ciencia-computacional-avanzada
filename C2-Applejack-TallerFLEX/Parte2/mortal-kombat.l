@@ -4,9 +4,11 @@
 #include <stdlib.h>
 char mapas[4][10] = {"Arctika", "Metropolis", "Armory", "Hell"};
 char mapa[10];
-char personajes[4][11] = {"Johnny Cage","Kano","Liu Kang","Sub-Zero"};
+#define MAX_PERSONAJES 4
+char personajes[MAX_PERSONAJES][11] = {"Johnny Cage","Kano","Liu Kang","Sub-Zero"};
 #define MAX_COMBOS 2
-char combosPersonajes[4][MAX_COMBOS][5][30]={
+#define MAX_ATAQUES_PREVIOS 5
+char combosPersonajes[MAX_PERSONAJES][MAX_COMBOS][MAX_ATAQUES_PREVIOS][30]={
     {
         //combo 1 Johnny Cage
         {"Combo 1", "Combo 2", "Combo 3", "Combo 4", "Combo 5"},
@@ -32,11 +34,63 @@ char combosPersonajes[4][MAX_COMBOS][5][30]={
     }
 };
 
+char nombreCombosPersonaje[MAX_PERSONAJES][MAX_COMBOS][30] = {
+    {
+        //combo 1 Johnny Cage
+        "Combo 1",
+        //combo 2 Johnny Cage
+        "Combo 2"
+    },
+    {
+        //combo 1 Kano
+        "Blood Worth Bottling",
+        //combo 2 Kano
+        "Combo 2"
+    },
+    {   //combo 1 Liu Kang
+        "Combo 1",
+        //combo 2 Liu Kang
+        "Combo 2"
+    },
+    {
+        //combo 1 Sub-Zero
+        "Combo 1",
+        //combo 2 Sub-Zero
+        "Combo 2"
+    }
+};
+
+int damageComboPersonaje [MAX_PERSONAJES][MAX_COMBOS] = {
+    {
+        //combo 1 Johnny Cage
+        10,
+        //combo 2 Johnny Cage
+        20
+    },
+    {
+        //combo 1 Kano
+        7,
+        //combo 2 Kano
+        20
+    },
+    {   //combo 1 Liu Kang
+        10,
+        //combo 2 Liu Kang
+        20
+    },
+    {
+        //combo 1 Sub-Zero
+        10,
+        //combo 2 Sub-Zero
+        20
+    }
+};
+
 char personaje[2][11] = {"", ""};
 char personajePos[2] = {0, 0};
 int vida[2] = {100, 100};
 
-#define MAX_ATAQUES_PREVIOS 5
+
 char ataquesPrevios[2][MAX_ATAQUES_PREVIOS][30]={
     {"", "", "", "", ""},
     {"", "", "", "", ""}
@@ -54,8 +108,11 @@ int getOpponent(int a){
 }
 
 bool randomAttack(){
-    //return rand() % 2;
-    return 1;
+    //funcion que devuelve true o false con una probabilidad de 50%.
+    //modificar para que la probabilidad sea diferente. 1 = 100%, 0 = 0%
+    float probabilidad = 0.5;
+
+    return (rand()/(float)RAND_MAX) < probabilidad;
 }
 
 void printAttack(int player, int opponent, char* attackName, bool hit, int damage){
@@ -63,6 +120,10 @@ void printAttack(int player, int opponent, char* attackName, bool hit, int damag
     if(hit){
         printf("El ataque ha acertado\n");
         vida[opponent-1] -= damage;
+        if (vida[opponent-1] <= 0){
+            vida[opponent-1] = 0;
+            tambaleo[opponent-1] = true;
+        }
         printf("El personaje %s ha recibido %d de daño\n", personaje[opponent-1], damage);
         printf("Vida restante de %s: %d\n", personaje[opponent-1], vida[opponent-1]);
     }else{
@@ -81,20 +142,6 @@ void checkVida(int player){
         }
 }
 
-void registerAttack(int player, int opponent, char* attackName, bool hit) {
-    if(hit){
-        for(int i=0;i<MAX_ATAQUES_PREVIOS; i++){
-            strcpy(ataquesPrevios[opponent-1][i], "");
-        }
-        for(int i=0;i<MAX_ATAQUES_PREVIOS; i++){
-            if(strcmp(ataquesPrevios[player-1][i], "") == 0){
-                strcpy(ataquesPrevios[player-1][i], attackName);
-                break;
-            }
-        }
-    }
-}
-
 int getLastValidIndex(char array[][30]){
     int i = 0;
     while(strcmp(array[i], "") != 0 && i<MAX_ATAQUES_PREVIOS){
@@ -102,6 +149,36 @@ int getLastValidIndex(char array[][30]){
     }
     return i;
 }
+
+void registerAttack(int player, int opponent, char* attackName, bool hit) {
+    if(hit){
+        for(int i=0;i<MAX_ATAQUES_PREVIOS; i++){
+            strcpy(ataquesPrevios[opponent-1][i], "");
+        }
+        if (getLastValidIndex(ataquesPrevios[player-1]) == MAX_ATAQUES_PREVIOS){
+            for(int i=0;i<MAX_ATAQUES_PREVIOS-1; i++){
+                strcpy(ataquesPrevios[player-1][i], ataquesPrevios[player-1][i+1]);
+            }
+            strcpy(ataquesPrevios[player-1][MAX_ATAQUES_PREVIOS-1], attackName);
+        }else{
+            strcpy(ataquesPrevios[player-1][getLastValidIndex(ataquesPrevios[player-1])], attackName);
+        }
+        
+    }
+}
+
+void registerMovement(int player, char* movement){
+    if(getLastValidIndex(ataquesPrevios[player-1]) == MAX_ATAQUES_PREVIOS){
+        for(int i=0;i<MAX_ATAQUES_PREVIOS-1; i++){
+            strcpy(ataquesPrevios[player-1][i], ataquesPrevios[player-1][i+1]);
+        }
+        strcpy(ataquesPrevios[player-1][MAX_ATAQUES_PREVIOS-1], movement);
+    }else{
+        strcpy(ataquesPrevios[player-1][getLastValidIndex(ataquesPrevios[player-1])], movement);
+    }
+}
+
+
 
 
 void checkCombo(int player){
@@ -115,7 +192,23 @@ void checkCombo(int player){
                 totalAtaquesPrevios--;
                 totalAtaquesCombo--;
                 if(totalAtaquesCombo == 0){
-                    printf("combo para el personaje %s\n", personaje[player-1]);
+                    printf("El personaje %s ha realizado el combo %s\n", personaje[player-1], nombreCombosPersonaje[personajePos[player-1]][i]);
+                    vida[getOpponent(player)-1] -= damageComboPersonaje[personajePos[player-1]][i];
+                    printf("El personaje %s ha recibido %d de daño adicionales\n", personaje[getOpponent(player)-1], damageComboPersonaje[personajePos[player-1]][i]);
+                    printf("Vida restante de %s: %d\n", personaje[getOpponent(player)-1], vida[getOpponent(player)-1]);
+
+                    //print content of ataquesPrevios
+                    printf("Ataques previos: ");
+                    for(int j=0;j<MAX_ATAQUES_PREVIOS; j++){
+                        printf("%s ", ataquesPrevios[player-1][j]);
+                    }
+                    printf("\n");
+
+
+                    for(int j=0;j<MAX_ATAQUES_PREVIOS; j++){
+                        strcpy(ataquesPrevios[player-1][j], "");
+                    }
+                    break;
                 }
             }
         }    
@@ -221,12 +314,16 @@ MOVEMENT {UP}|{DOWN}|{LEFT}|{RIGHT}
         }
         if(strcmp(direction, "UP") == 0){
             printf("El personaje %s se ha movido hacia arriba\n", personaje[player-1]);
+            registerMovement(player, "UP");
         }else if(strcmp(direction, "DOWN") == 0){
             printf("El personaje %s se ha movido hacia abajo\n", personaje[player-1]);
+            registerMovement(player, "DOWN");
         }else if(strcmp(direction, "LEFT") == 0){
             printf("El personaje %s se ha movido hacia la izquierda\n", personaje[player-1]);
+            registerMovement(player, "LEFT");
         }else if(strcmp(direction, "RIGHT") == 0){
             printf("El personaje %s se ha movido hacia la derecha\n", personaje[player-1]);
+            registerMovement(player, "RIGHT");
         }
     }
 }
@@ -336,6 +433,16 @@ MOVEMENT {UP}|{DOWN}|{LEFT}|{RIGHT}
 
 .       { /* Ignorar cualquier otro caracter */}
 \n      { /* Ignorar saltos de línea */ }
+<<EOF>> {
+            printf("Fin de la partida, gracias por jugar\n");
+            printf("Estadísticas de la partida:\n");
+            printf("Personaje 1: %s\n", personaje[0]);
+            printf("Vida: %d\n", vida[0]);
+            printf("Personaje 2: %s\n", personaje[1]);
+            printf("Vida: %d\n", vida[1]);
+            yyterminate();
+        }
+
 %%
 
 int main() {

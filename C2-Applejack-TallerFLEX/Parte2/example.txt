@@ -14,3 +14,13 @@ A
 2X
 2X
 2Y
+2X
+2X
+2Y
+2X
+2X
+2Y
+2X
+2X
+2DOWN
+2Y
