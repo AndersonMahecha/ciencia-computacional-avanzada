@@ -14,52 +14,52 @@ char personajes[MAX_PERSONAJES][11] = {"Johnny Cage","Kano","Liu Kang","Sub-Zero
 char combosPersonajes[MAX_PERSONAJES][MAX_COMBOS][MAX_ATAQUES_PREVIOS][30]={
     {
         //combo 1 Johnny Cage
-        {"Combo 1", "Combo 2", "Combo 3", "Combo 4", "Combo 5"},
+        {"2Y", "B", "B", "", ""},
         //combo 2 Johnny Cage
-        {"Combo 1", "Combo 2", "Combo 3", "Combo 4", "Combo 5"}
+        {"X", "Y", "X", "", ""}
     },
     {
         //combo 1 Kano
-        {"Bloody Knuckles", "Bloody Knuckles", "Scarred","", ""},
+        {"X", "X", "Y","", ""},
         //combo 2 Kano
-        {"Combo 1", "Combo 2", "Combo 3", "Combo 4", "Combo 5"}
+        {"Y", "Y", "", "", ""}
     },
     {   //combo 1 Liu Kang
-        {"Combo 1", "Combo 2", "Combo 3", "Combo 4", "Combo 5"},
+        {"X", "Y", "A", "", ""},
         //combo 2 Liu Kang
-        {"Combo 1", "Combo 2", "Combo 3", "Combo 4", "Combo 5"}
+        {"Y", "X", "Y", "X", ""}
     },
     {
         //combo 1 Sub-Zero
-        {"Combo 1", "Combo 2", "Combo 3", "Combo 4", "Combo 5"},
+        {"X", "Y", "B", "", ""},
         //combo 2 Sub-Zero
-        {"Combo 1", "Combo 2", "Combo 3", "Combo 4", "Combo 5"}
+        {"Y", "X", "Y", "", ""}
     }
 };
 
 char nombreCombosPersonaje[MAX_PERSONAJES][MAX_COMBOS][30] = {
     {
         //combo 1 Johnny Cage
-        "Combo 1",
+        "Comedy and Tragedy",
         //combo 2 Johnny Cage
-        "Combo 2"
+        "Post Credits"
     },
     {
         //combo 1 Kano
         "Blood Worth Bottling",
         //combo 2 Kano
-        "Combo 2"
+        "Come a Gutser"
     },
     {   //combo 1 Liu Kang
-        "Combo 1",
+        "Twin Lotus",
         //combo 2 Liu Kang
-        "Combo 2"
+        "Done Listening"
     },
     {
         //combo 1 Sub-Zero
-        "Combo 1",
+        "Cold Encounter",
         //combo 2 Sub-Zero
-        "Combo 2"
+        "New Threat"
     }
 };
 
@@ -93,11 +93,40 @@ char personaje[2][11] = {"", ""};
 char personajePos[2] = {0, 0};
 int vida[2] = {100, 100};
 
+char nombreFatalitiesPersonaje[MAX_PERSONAJES][30] = {
+    "Mr. Cage's Neighborhood",
+    "Last Dance",
+    "Burn Out",
+    "Ice-Cutioner"
+};
+
+char fatalitiesPersonajes[MAX_PERSONAJES][MAX_ATAQUES_PREVIOS][30]={
+    {
+        //fatality Johnny Cage
+        "RIGHT", "LEFT", "DOWN", "DOWN", "B"
+    },
+    {
+        //fatality Kano
+        "RIGHT", "DOWN", "DOWN", "X", ""
+    },
+    {   //fatality Liu Kang
+        "DOWN", "LEFT", "DOWN", "RIGHT", "X"
+    },
+    {
+        //fatality Sub-Zero
+        "LEFT", "RIGHT", "LEFT", "Y", ""
+    }
+};
+
+bool fueFatality = false;
+
 
 char ataquesPrevios[2][MAX_ATAQUES_PREVIOS][30]={
     {"", "", "", "", ""},
     {"", "", "", "", ""}
 };
+
+char tambaleoMovimientos[10][30] = {"", "", "", "", "", "", "", "", "", ""};
 
 bool tambaleo[2] = {false, false};
 bool muerto[2] = {false, false};
@@ -120,11 +149,9 @@ void printAttack(int player, int opponent, char* attackName, bool hit, int damag
     printf("El personaje %s ha usado %s contra %s\n", personaje[player-1], attackName, personaje[opponent-1]);
     if(hit){
         printf("El ataque ha acertado\n");
-        if(muerto[opponent-1]){
-            return;
-        }
         if(tambaleo[opponent-1]){
             printf("El personaje %s ha muerto\n", personaje[opponent-1]);
+            muerto[opponent-1] = true;
             return;
         }
         vida[opponent-1] -= damage;
@@ -145,15 +172,16 @@ void printAttack(int player, int opponent, char* attackName, bool hit, int damag
     }
 }
 
-void checkVida(int player){
+bool checkVida(int player){
         if(vida[player-1] <= 0){
             printf("El personaje %s no puede atacar porque está muerto\n", personaje[player-1]);
-            return;
+            return false;
         }
         if(tambaleo[player-1]){
             printf("El personaje %s no puede atacar porque está tambaleándose\n", personaje[player-1]);
-            return;
+            return false;
         }
+        return true;
 }
 
 int getLastValidIndex(char array[][30]){
@@ -164,7 +192,7 @@ int getLastValidIndex(char array[][30]){
     return i;
 }
 
-void registerAttack(int player, int opponent, char* attackName, bool hit) {
+void registerAttack(int player, int opponent, char* key, bool hit) {
     if(hit){
         for(int i=0;i<MAX_ATAQUES_PREVIOS; i++){
             strcpy(ataquesPrevios[opponent-1][i], "");
@@ -173,9 +201,9 @@ void registerAttack(int player, int opponent, char* attackName, bool hit) {
             for(int i=0;i<MAX_ATAQUES_PREVIOS-1; i++){
                 strcpy(ataquesPrevios[player-1][i], ataquesPrevios[player-1][i+1]);
             }
-            strcpy(ataquesPrevios[player-1][MAX_ATAQUES_PREVIOS-1], attackName);
+            strcpy(ataquesPrevios[player-1][MAX_ATAQUES_PREVIOS-1], key);
         }else{
-            strcpy(ataquesPrevios[player-1][getLastValidIndex(ataquesPrevios[player-1])], attackName);
+            strcpy(ataquesPrevios[player-1][getLastValidIndex(ataquesPrevios[player-1])], key);
         }
         
     }
@@ -227,12 +255,28 @@ void checkCombo(int player){
         }    
 }
 
-void checkFatality(int player){
-
+bool checkFatality(int player){
+    int totalMovimientosTambaleo = getLastValidIndex(tambaleoMovimientos);
+    int totalMovimientosFatality = getLastValidIndex(fatalitiesPersonajes[personajePos[player-1]]);
+    while(totalMovimientosFatality>=0 && totalMovimientosTambaleo>=0){
+        if(strcmp(tambaleoMovimientos[totalMovimientosTambaleo], fatalitiesPersonajes[personajePos[player-1]][totalMovimientosFatality]) != 0){
+            return false;
+        }
+        totalMovimientosTambaleo--;
+        totalMovimientosFatality--;
+        if(totalMovimientosFatality == 0){
+            printf("El personaje %s ha realizado la fatality %s\n", personaje[player-1], nombreFatalitiesPersonaje[personajePos[player-1]]);
+            printf("El personaje %s ha sido eliminado\n", personaje[getOpponent(player)-1]);
+            fueFatality = true;
+            return true;
+        }
+    }
 }
 
-
-
+void registrarMovimientoTambaleo( char* movimiento){
+    int x = getLastValidIndex(tambaleoMovimientos);
+    strcpy(tambaleoMovimientos[x], movimiento);
+}
 
 /* 
     0 - Selección de mapa
@@ -329,18 +373,34 @@ MOVEMENT {UP}|{DOWN}|{LEFT}|{RIGHT}
             printf("El personaje %s no puede moverse porque está muerto\n", personaje[player-1]);
             return;
         }
+        bool oponenteTambaleando = false;
+        if(tambaleo[getOpponent(player)-1]){
+            oponenteTambaleando = true;
+        }
         if(strcmp(direction, "UP") == 0){
             printf("El personaje %s se ha movido hacia arriba\n", personaje[player-1]);
             registerMovement(player, "UP");
+            if(oponenteTambaleando){
+                registrarMovimientoTambaleo("UP");
+            }
         }else if(strcmp(direction, "DOWN") == 0){
             printf("El personaje %s se ha movido hacia abajo\n", personaje[player-1]);
             registerMovement(player, "DOWN");
+            if(oponenteTambaleando){
+                registrarMovimientoTambaleo("DOWN");
+            }
         }else if(strcmp(direction, "LEFT") == 0){
             printf("El personaje %s se ha movido hacia la izquierda\n", personaje[player-1]);
             registerMovement(player, "LEFT");
+            if(oponenteTambaleando){
+                registrarMovimientoTambaleo("LEFT");
+            }
         }else if(strcmp(direction, "RIGHT") == 0){
             printf("El personaje %s se ha movido hacia la derecha\n", personaje[player-1]);
             registerMovement(player, "RIGHT");
+            if(oponenteTambaleando){
+                registrarMovimientoTambaleo("RIGHT");
+            }
         }
     }
 }
@@ -353,19 +413,32 @@ MOVEMENT {UP}|{DOWN}|{LEFT}|{RIGHT}
         int damage = 5;
         char attackName[30];
 
-        checkVida(player);
+        bool puedeMoverse = checkVida(player);
+        if(!puedeMoverse){
+            break;
+        }
 
         if(strcmp(personaje[player-1], "Johnny Cage") == 0){
-            strcpy(attackName, "Sudden Violence");
+            strcpy(attackName, "First Take");
         }else if(strcmp(personaje[player-1], "Kano") == 0){
             strcpy(attackName, "Bloody Knuckles");
         }else if(strcmp(personaje[player-1], "Liu Kang") == 0){
-            strcpy(attackName, "Dragon Kick");
+            strcpy(attackName, "Power Punch");
         }else if(strcmp(personaje[player-1], "Sub-Zero") == 0){
-            strcpy(attackName, "Lin Kuei Kick");
+            strcpy(attackName, "Straight Chop");
+        }
+        if(muerto[opponent-1]){
+            break;
+        }
+        if(tambaleo[opponent-1]){
+            registrarMovimientoTambaleo("X");
+            checkFatality(player);
+        }
+        if(fueFatality){
+            break;
         }
         printAttack(player, opponent, attackName, hit, damage);
-        registerAttack(player, opponent, attackName, hit);
+        registerAttack(player, opponent, "X", hit);
         checkCombo(player);
     }
 }
@@ -378,19 +451,32 @@ MOVEMENT {UP}|{DOWN}|{LEFT}|{RIGHT}
         int damage = 5;
         char attackName[30];
 
-        checkVida(player);
+        bool puedeMoverse = checkVida(player);
+        if(!puedeMoverse){
+            break;
+        }
         
         if(strcmp(personaje[player-1], "Johnny Cage") == 0){
-            strcpy(attackName, "Sudden Violence");
+            strcpy(attackName, "Hollywood Haymaker");
         }else if(strcmp(personaje[player-1], "Kano") == 0){
             strcpy(attackName, "Scarred");
         }else if(strcmp(personaje[player-1], "Liu Kang") == 0){
-            strcpy(attackName, "Dragon Kick");
+            strcpy(attackName, "Chosen Strike");
         }else if(strcmp(personaje[player-1], "Sub-Zero") == 0){
-            strcpy(attackName, "Lin Kuei Kick");
+            strcpy(attackName, "Palm Strike");
+        }
+        if(muerto[opponent-1]){
+            break;
+        }
+        if(tambaleo[opponent-1]){
+            registrarMovimientoTambaleo("Y");
+            checkFatality(player);
+        }
+        if(fueFatality){
+            break;
         }
         printAttack(player, opponent, attackName, hit, damage);
-        registerAttack(player, opponent, attackName, hit);
+        registerAttack(player, opponent, "Y", hit);
         checkCombo(player);
     }
 }
@@ -403,7 +489,10 @@ MOVEMENT {UP}|{DOWN}|{LEFT}|{RIGHT}
         int damage = 5;
         char attackName[30];
 
-        checkVida(player);
+        bool puedeMoverse = checkVida(player);
+        if(!puedeMoverse){
+            break;
+        }
 
         if(strcmp(personaje[player-1], "Johnny Cage") == 0){
             strcpy(attackName, "Sudden Violence");
@@ -414,8 +503,18 @@ MOVEMENT {UP}|{DOWN}|{LEFT}|{RIGHT}
         }else if(strcmp(personaje[player-1], "Sub-Zero") == 0){
             strcpy(attackName, "Lin Kuei Kick");
         }
+        if(muerto[opponent-1]){
+            break;
+        }
+        if(tambaleo[opponent-1]){
+            registrarMovimientoTambaleo("A");
+            checkFatality(player);
+        }
+        if(fueFatality){
+            break;
+        }
         printAttack(player, opponent, attackName, hit, damage);
-        registerAttack(player, opponent, attackName, hit);
+        registerAttack(player, opponent, "A", hit);
         checkCombo(player);
     }
 }
@@ -428,19 +527,32 @@ MOVEMENT {UP}|{DOWN}|{LEFT}|{RIGHT}
         int damage = 5;
         char attackName[30];
         
-        checkVida(player);
+        bool puedeMoverse = checkVida(player);
+        if(!puedeMoverse){
+            break;
+        }
 
         if(strcmp(personaje[player-1], "Johnny Cage") == 0){
-            strcpy(attackName, "Sudden Violence");
+            strcpy(attackName, "Fight Dirty");
         }else if(strcmp(personaje[player-1], "Kano") == 0){
-            strcpy(attackName, "High Boot");
+            strcpy(attackName, "Face Breaker");
         }else if(strcmp(personaje[player-1], "Liu Kang") == 0){
-            strcpy(attackName, "Dragon Kick");
+            strcpy(attackName, "Shaolin Spin");
         }else if(strcmp(personaje[player-1], "Sub-Zero") == 0){
-            strcpy(attackName, "Lin Kuei Kick");
+            strcpy(attackName, "Roundhouse");
+        }
+        if(muerto[opponent-1]){
+            break;
+        }
+        if(tambaleo[opponent-1]){
+            registrarMovimientoTambaleo("B");
+            checkFatality(player);
+        }
+        if(fueFatality){
+            break;
         }
         printAttack(player, opponent, attackName, hit, damage);
-        registerAttack(player, opponent, attackName, hit);
+        registerAttack(player, opponent, "B", hit);
         checkCombo(player);
     }
 }
@@ -467,6 +579,9 @@ MOVEMENT {UP}|{DOWN}|{LEFT}|{RIGHT}
                 printf("El ganador es el personaje %s\n", personaje[1]);
             }else{
                 printf("Hubo un empate\n");
+            }
+            if(fueFatality){
+                printf("Hubo fatality\n");
             }
             printf("---------------------------------------------------------\n");
             yyterminate();
